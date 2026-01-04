@@ -80,7 +80,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
 
 [[package]]
-name = "hdc1080-embedded"
+name = "hdc1080-async"
 version = "0.1.0"
 dependencies = [
  "embassy-time",

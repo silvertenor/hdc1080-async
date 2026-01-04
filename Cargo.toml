@@ -1,9 +1,10 @@
 [package]
-name = "hdc1080-embedded"
+name = "hdc1080-async"
 version = "0.1.0"
 edition = "2024"
 description = "A driver library for interfacing with the HDC1080 hygrometer. Specifically targeted at embedded, no-std environments."
 authors = ["Devin Lane"]
+license = "MIT"
 
 [dependencies]
 embassy-time = "0.5.0"
