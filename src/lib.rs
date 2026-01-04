@@ -2,21 +2,21 @@
 
 use embassy_time::Timer;
 use embedded_hal_async::i2c::I2c;
-pub const HYGROI2C_ADDRESS: u8 = 0x40;
-pub const HYGROI2C_TMP_REG: u8 = 0x00;
-pub const HYGROI2C_HUM_REG: u8 = 0x01;
-pub const HYGROI2C_CONFIG_REG: u8 = 0x02;
+pub const HDC1080I2C_ADDRESS: u8 = 0x40;
+pub const HDC1080I2C_TMP_REG: u8 = 0x00;
+pub const HDC1080I2C_HUM_REG: u8 = 0x01;
+pub const HDC1080I2C_CONFIG_REG: u8 = 0x02;
 
-pub struct Hygrometer<DRIVER> {
+pub struct Hdc1080<DRIVER> {
     driver: DRIVER,
     address: u8,
 }
 
-impl<DRIVER: I2c> Hygrometer<DRIVER> {
-    pub fn new(driver: DRIVER) -> Hygrometer<DRIVER> {
-        Hygrometer {
+impl<DRIVER: I2c> Hdc1080<DRIVER> {
+    pub fn new(driver: DRIVER) -> Hdc1080<DRIVER> {
+        Hdc1080 {
             driver,
-            address: HYGROI2C_ADDRESS,
+            address: HDC1080I2C_ADDRESS,
         }
     }
 
@@ -24,13 +24,13 @@ impl<DRIVER: I2c> Hygrometer<DRIVER> {
         let dummy_buf: [u8; 1] = [0];
         self.driver.write(self.address, &dummy_buf).await?;
         Timer::after_millis(15).await;
-        let buffer: [u8; 2] = [HYGROI2C_CONFIG_REG, 0x00];
+        let buffer: [u8; 2] = [HDC1080I2C_CONFIG_REG, 0x00];
         self.driver.write(self.address, &buffer).await?;
         Ok(())
     }
 
     pub async fn get_temp(&mut self) -> Result<f32, DRIVER::Error> {
-        let buffer: [u8; 1] = [HYGROI2C_TMP_REG];
+        let buffer: [u8; 1] = [HDC1080I2C_TMP_REG];
         self.driver.write(self.address, &buffer).await?;
         Timer::after_millis(8).await;
         let mut read_buf: [u8; 2] = [0; 2];
@@ -42,7 +42,7 @@ impl<DRIVER: I2c> Hygrometer<DRIVER> {
     }
 
     pub async fn get_humidity(&mut self) -> Result<f32, DRIVER::Error> {
-        let write_buf: [u8; 1] = [HYGROI2C_HUM_REG];
+        let write_buf: [u8; 1] = [HDC1080I2C_HUM_REG];
         self.driver.write(self.address, &write_buf).await?;
         Timer::after_millis(8).await;
         let mut read_buf: [u8; 2] = [0; 2];
