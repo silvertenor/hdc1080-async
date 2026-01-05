@@ -48,14 +48,4 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
         let rh = (((read_buf[0] as u16) << 8 | read_buf[1] as u16) as f32 / 65536.0) * 100.0;
         Ok(rh)
     }
-
-    pub async fn get_humidity_new(&mut self) -> Result<f32, DRIVER::Error> {
-        // let write_buf: [u8; 1] = [HDC1080I2C_HUM_REG];
-        // self.driver.write(self.address, &write_buf).await?;
-        Timer::after_millis(8).await;
-        let mut read_buf: [u8; 2] = [0; 2];
-        self.driver.read(self.address, &mut read_buf).await?;
-        let rh = (((read_buf[0] as u16) << 8 | read_buf[1] as u16) as f32 / 65536.0) * 100.0;
-        Ok(rh)
-    }
 }
