@@ -22,10 +22,8 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
 
     pub async fn begin(&mut self) -> Result<(), DRIVER::Error> {
         Timer::after_millis(15).await;
-        let write_bit: [u8; 1] = [0];
-        self.driver.write(self.address, &write_bit).await?;
-        // let buffer: [u8; 2] = [HDC1080I2C_CONFIG_REG, 0x00];
-        // self.driver.write(self.address, &buffer).await?;
+        let buffer: [u8; 3] = [HDC1080I2C_CONFIG_REG, 0x0, 0x0];
+        self.driver.write(self.address, &buffer).await?;
         Ok(())
     }
 
