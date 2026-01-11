@@ -134,7 +134,7 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
         self.driver.write(self.address, &buf).await?;
         Ok(())
     }
-    fn wait_ms(&self, acqui: Acquisition) -> u64 {
+    fn wait_us(&self, acqui: Acquisition) -> u64 {
         let mut delay: u64 = 0;
         let t_delay: u64 = match self.config.temp_res {
             TRes::High => 6350,
@@ -166,7 +166,7 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
     async fn get_both(&mut self) -> Result<Measurement, DRIVER::Error> {
         let buffer: [u8; 1] = [HDC1080I2C_TMP_REG];
         self.driver.write(self.address, &buffer).await?;
-        Timer::after_millis(self.wait_ms(Acquisition::Both)).await;
+        Timer::after_micros(self.wait_us(Acquisition::Both)).await;
         let mut read_buf: [u8; 4] = [0; 4];
         self.driver.read(self.address, &mut read_buf).await?;
         let t_buf: [u8; 2] = read_buf[0..2].try_into().unwrap();
@@ -196,7 +196,7 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
     pub async fn get_temp(&mut self) -> Result<f32, DRIVER::Error> {
         let buffer: [u8; 1] = [HDC1080I2C_TMP_REG];
         self.driver.write(self.address, &buffer).await?;
-        Timer::after_millis(self.wait_ms(Acquisition::Temp)).await;
+        Timer::after_micros(self.wait_us(Acquisition::Temp)).await;
         let mut read_buf: [u8; 2] = [0; 2];
         self.driver.read(self.address, &mut read_buf).await?;
         let temp_c = self.convert(read_buf, Acquisition::Temp);
@@ -206,7 +206,7 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
     pub async fn get_humidity(&mut self) -> Result<f32, DRIVER::Error> {
         let write_buf: [u8; 1] = [HDC1080I2C_HUM_REG];
         self.driver.write(self.address, &write_buf).await?;
-        Timer::after_millis(self.wait_ms(Acquisition::Humidity)).await;
+        Timer::after_micros(self.wait_us(Acquisition::Humidity)).await;
         let mut read_buf: [u8; 2] = [0; 2];
         self.driver.read(self.address, &mut read_buf).await?;
         let rh = self.convert(read_buf, Acquisition::Humidity);
