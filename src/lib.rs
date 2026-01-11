@@ -59,14 +59,14 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn set_bits(&mut self, mask: u16) {
+    fn set_bits(&mut self, mask: u16) {
         self.bits |= mask
     }
-    pub fn clear_bits(&mut self, mask: u16) {
+    fn clear_bits(&mut self, mask: u16) {
         self.bits &= !mask
     }
     pub fn reset(&mut self) {
-        self.bits |= ConfigRegisterFields::RST;
+        self.set_bits(ConfigRegisterFields::RST);
     }
     pub fn set_heater(&mut self, heat: Heat) {
         match heat {
