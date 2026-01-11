@@ -1,5 +1,6 @@
 #![no_std]
 
+use defmt::Format;
 use embassy_time::Timer;
 use embedded_hal_async::i2c::I2c;
 pub const HDC1080I2C_ADDRESS: u8 = 0x40;
@@ -7,6 +8,7 @@ pub const HDC1080I2C_TMP_REG: u8 = 0x00;
 pub const HDC1080I2C_HUM_REG: u8 = 0x01;
 pub const HDC1080I2C_CONFIG_REG: u8 = 0x02;
 
+#[derive(Format)]
 pub struct Hdc1080<DRIVER> {
     driver: DRIVER,
     address: u8,
@@ -16,15 +18,18 @@ pub enum Heat {
     Enabled,
     Disabled,
 }
+#[derive(Format)]
 pub enum AcquisitionMode {
     Individual,
     Sequential,
 }
 
+#[derive(Format)]
 pub enum TRes {
     High,
     Low,
 }
+#[derive(Format)]
 pub enum HRes {
     High,
     Mid,
@@ -40,6 +45,7 @@ impl ConfigRegisterFields {
     const HRES_8: u16 = 1 << 8;
 }
 
+#[derive(Format)]
 pub struct Config {
     bits: u16,
     mode: AcquisitionMode,
