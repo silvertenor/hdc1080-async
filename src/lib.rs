@@ -109,8 +109,8 @@ enum Acquisition {
 }
 
 pub struct Measurement {
-    temp: Option<f32>,
-    humidity: Option<f32>,
+    pub temp: Option<f32>,
+    pub humidity: Option<f32>,
 }
 impl Default for Measurement {
     fn default() -> Self {
