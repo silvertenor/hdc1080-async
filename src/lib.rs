@@ -107,6 +107,7 @@ enum Acquisition {
     Humidity,
     Both,
 }
+#[derive(Debug)]
 pub struct Measurement {
     temp: Option<f32>,
     humidity: Option<f32>,
