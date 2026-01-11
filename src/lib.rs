@@ -85,12 +85,14 @@ impl Config {
             AcquisitionMode::Individual => self.clear_bits(ConfigRegisterFields::MODE),
             AcquisitionMode::Sequential => self.set_bits(ConfigRegisterFields::MODE),
         }
+        self.mode = mode;
     }
     pub fn set_temp_resolution(&mut self, res: TRes) {
         match res {
             TRes::High => self.clear_bits(ConfigRegisterFields::TRES),
             TRes::Low => self.set_bits(ConfigRegisterFields::TRES),
         }
+        self.temp_res = res;
     }
     pub fn set_humidity_resolution(&mut self, res: HRes) {
         match res {
@@ -105,6 +107,7 @@ impl Config {
                 self.set_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8);
             }
         }
+        self.hum_res = res;
     }
 }
 
@@ -140,6 +143,13 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
         let buf: [u8; 3] = [HDC1080I2C_CONFIG_REG, (self.config.bits >> 8) as u8, 0x0];
         self.driver.write(self.address, &buf).await?;
         Ok(())
+    }
+    pub async fn read_config(&mut self) -> Result<[u8; 2], DRIVER::Error> {
+        let buffer: [u8; 1] = [HDC1080I2C_CONFIG_REG];
+        self.driver.write(self.address, &buffer).await?;
+        let mut buf: [u8; 2] = [0; 2];
+        self.driver.read(self.address, &mut buf).await?;
+        Ok(buf)
     }
     fn wait_us(&self, acqui: Acquisition) -> u64 {
         let mut delay: u64 = 0;
@@ -216,6 +226,7 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
         Timer::after_micros(self.wait_us(Acquisition::Humidity)).await;
         let mut read_buf: [u8; 2] = [0; 2];
         self.driver.read(self.address, &mut read_buf).await?;
+        defmt::info!("{:?}", read_buf);
         let rh = self.convert(read_buf, Acquisition::Humidity);
         Ok(rh.unwrap())
     }
