@@ -127,8 +127,8 @@ impl<DRIVER: I2c> Hdc1080<DRIVER> {
                 self.config.set_bits(ConfigRegisterFields::HRES_8);
             }
             HRes::Low => {
-                self.config
-                    .set_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8);
+                self.config.set_bits(ConfigRegisterFields::HRES_9);
+                self.config.clear_bits(ConfigRegisterFields::HRES_8);
             }
         }
         let buf: [u8; 3] = [HDC1080I2C_CONFIG_REG, self.config.bits, 0x0];
