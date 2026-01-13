@@ -1,6 +1,6 @@
 #![no_std]
 
-use defmt::Format;
+use defmt::{Format, info};
 use embassy_time::Timer;
 use embedded_hal_async::i2c::I2c;
 pub const HDC1080I2C_ADDRESS: u8 = 0x40;
@@ -37,26 +37,26 @@ pub enum HRes {
 }
 struct ConfigRegisterFields;
 impl ConfigRegisterFields {
-    const RST: u16 = 1 << 15;
-    const HEAT: u16 = 1 << 13;
-    const MODE: u16 = 1 << 12;
-    const TRES: u16 = 1 << 10;
-    const HRES_9: u16 = 1 << 9;
-    const HRES_8: u16 = 1 << 8;
+    const RST: u8 = 1 << 7;
+    const HEAT: u8 = 1 << 5;
+    const MODE: u8 = 1 << 4;
+    const TRES: u8 = 1 << 2;
+    const HRES_9: u8 = 1 << 1;
+    const HRES_8: u8 = 1 << 0;
 }
 
 #[derive(Format)]
 pub struct Config {
-    bits: u16,
-    mode: AcquisitionMode,
-    temp_res: TRes,
-    hum_res: HRes,
+    bits: u8,
+    pub mode: AcquisitionMode,
+    pub temp_res: TRes,
+    pub hum_res: HRes,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
-            bits: 0x0 | ConfigRegisterFields::MODE,
+            bits: ConfigRegisterFields::MODE,
             mode: AcquisitionMode::Sequential,
             temp_res: TRes::High,
             hum_res: HRes::High,
@@ -65,49 +65,24 @@ impl Default for Config {
 }
 
 impl Config {
-    fn set_bits(&mut self, mask: u16) {
+    fn set_bits(&mut self, mask: u8) {
         self.bits |= mask
     }
-    fn clear_bits(&mut self, mask: u16) {
+    fn clear_bits(&mut self, mask: u8) {
         self.bits &= !mask
     }
     pub fn reset(&mut self) {
         self.set_bits(ConfigRegisterFields::RST);
+        self.bits = ConfigRegisterFields::MODE;
+        self.mode = AcquisitionMode::Sequential;
+        self.temp_res = TRes::High;
+        self.hum_res = HRes::High;
     }
     pub fn set_heater(&mut self, heat: Heat) {
         match heat {
             Heat::Disabled => self.clear_bits(ConfigRegisterFields::HEAT),
             Heat::Enabled => self.set_bits(ConfigRegisterFields::HEAT),
         }
-    }
-    pub fn set_acqui_mode(&mut self, mode: AcquisitionMode) {
-        match mode {
-            AcquisitionMode::Individual => self.clear_bits(ConfigRegisterFields::MODE),
-            AcquisitionMode::Sequential => self.set_bits(ConfigRegisterFields::MODE),
-        }
-        self.mode = mode;
-    }
-    pub fn set_temp_resolution(&mut self, res: TRes) {
-        match res {
-            TRes::High => self.clear_bits(ConfigRegisterFields::TRES),
-            TRes::Low => self.set_bits(ConfigRegisterFields::TRES),
-        }
-        self.temp_res = res;
-    }
-    pub fn set_humidity_resolution(&mut self, res: HRes) {
-        match res {
-            HRes::High => {
-                self.clear_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8)
-            }
-            HRes::Mid => {
-                self.clear_bits(ConfigRegisterFields::HRES_9);
-                self.set_bits(ConfigRegisterFields::HRES_8);
-            }
-            HRes::Low => {
-                self.set_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8);
-            }
-        }
-        self.hum_res = res;
     }
 }
 
@@ -117,30 +92,46 @@ enum Acquisition {
     Both,
 }
 
-#[derive(Format)]
+#[derive(Format, Default)]
 pub struct Measurement {
     pub temp: Option<f32>,
     pub humidity: Option<f32>,
 }
-impl Default for Measurement {
-    fn default() -> Self {
-        Measurement {
-            temp: None,
-            humidity: None,
-        }
-    }
-}
+
 impl<DRIVER: I2c> Hdc1080<DRIVER> {
-    pub fn new(driver: DRIVER) -> Hdc1080<DRIVER> {
-        Hdc1080 {
+    pub async fn new(driver: DRIVER, config: Config) -> Hdc1080<DRIVER> {
+        let mut hdc1080 = Hdc1080 {
             driver,
             address: HDC1080I2C_ADDRESS,
-            config: Config::default(),
-        }
+            config,
+        };
+        hdc1080.set_config().await.unwrap();
+        info!("{:?}", hdc1080.config);
+        hdc1080
     }
-    pub async fn set_config(&mut self, config: Config) -> Result<(), DRIVER::Error> {
-        self.config = config;
-        let buf: [u8; 3] = [HDC1080I2C_CONFIG_REG, (self.config.bits >> 8) as u8, 0x0];
+    pub async fn set_config(&mut self) -> Result<(), DRIVER::Error> {
+        match self.config.mode {
+            AcquisitionMode::Individual => self.config.clear_bits(ConfigRegisterFields::MODE),
+            AcquisitionMode::Sequential => self.config.set_bits(ConfigRegisterFields::MODE),
+        };
+        match self.config.temp_res {
+            TRes::High => self.config.clear_bits(ConfigRegisterFields::TRES),
+            TRes::Low => self.config.set_bits(ConfigRegisterFields::TRES),
+        };
+        match self.config.hum_res {
+            HRes::High => self
+                .config
+                .clear_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8),
+            HRes::Mid => {
+                self.config.clear_bits(ConfigRegisterFields::HRES_9);
+                self.config.set_bits(ConfigRegisterFields::HRES_8);
+            }
+            HRes::Low => {
+                self.config
+                    .set_bits(ConfigRegisterFields::HRES_9 | ConfigRegisterFields::HRES_8);
+            }
+        }
+        let buf: [u8; 3] = [HDC1080I2C_CONFIG_REG, self.config.bits, 0x0];
         self.driver.write(self.address, &buf).await?;
         Ok(())
     }
